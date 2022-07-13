@@ -1,4 +1,6 @@
-// #define Wire Wire1
+
+
+#define Wire Wire1
 #include <Wire.h>
 #include <EEPROM.h>
 
@@ -305,7 +307,13 @@ void loop() {
     shiftcount = 0; // reset shiftcount
 
     for (int i = 11;  i > -1; i = i - 1) { // loop 12 times, i increments from 11 to 0, so this one for loop checks all keys.
-      currentkey[i] = touchRead(key[i]); 
+      int lastVal = currentkey[i];
+      int note = scale[i] + transpose + octave;
+      currentkey[i] = touchRead(key[i]);
+      if (lastVal != currentkey[i] && velocity[i] > 0) {
+        int val = constrain(map(currentkey[i], thresh[i], maximum[i], 0, 127), 0, 127);
+        usbMIDI.sendAfterTouchPoly(note, val, channel);
+      }
       if (currentkey[i] > thresh[i] && playflag[i] == 0) {
         playflag[i] = 1;
         if (playflag[i] == 1) { 
@@ -317,12 +325,13 @@ void loop() {
         velocity[i] = touchRead(key[i]); 
         velocity[i] = map(velocity[i], thresh[i], maximum[i], 0, 127); 
         velocity[i] = constrain(velocity[i], 0, 127); 
-        usbMIDI.sendNoteOn(scale[i] + transpose + octave, velocity[i], channel); 
+        usbMIDI.sendNoteOn(note, velocity[i], channel); 
       }
 
       if(currentkey[i] < thresh[i] && playflag[i] == 1) {
         playflag[i] = 0;
-        usbMIDI.sendNoteOff(scale[i] + transpose + octave, 0, channel); 
+        usbMIDI.sendNoteOff(note, 0, channel);
+        velocity[i] = 0;
       }
     }
 
