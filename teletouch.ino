@@ -68,10 +68,6 @@ int currentkey[12];
 
 // this array stores touchread values for calibration
 
-int lastcalib[12];
-int basecalib[12];
-int lowestcalib[12];
-
 int minima[12];
 int maxima[12];
 
@@ -260,7 +256,7 @@ void loop() {
 
   if (shiftcount > 700) { // if shift has been held for more than 7 seconds without any other buttons pressed
     for (int i = 0;  i < 12; i++) {
-      minima[i] = INT_MAX; // set the unpressed key value
+      minima[i] = touchRead(key[i]); // set the unpressed key value
       maxima[i] = 0;
     }
   
@@ -271,13 +267,18 @@ void loop() {
     while (brk == 0) {
       for (int i = 0;  i < 12; i++) {    // loop 12 times
         int val = touchRead(key[i]);
-        if (val < minima[i]) {
-          minima[i] = val;
-        }
         if (val > maxima[i]) {
           maxima[i] = val;
         }
         if (val > minima[i] + 200) { // if key value i is over 200 above baseline reading
+          for (int j = 0; j < 12; j++) {
+            if (j == i) continue;
+            // we want to adjust the minimum of the "neighbor" keys up to whatever they read now.
+            int neighbor = touchRead(key[j]);
+            if (neighbor > minima[j]) {
+              minima[j] = neighbor; 
+            }
+          }
           digitalWrite(LED, HIGH); //flash led
           Serial.print("key...");
           Serial.print(i);
