@@ -1,4 +1,6 @@
-// #define Wire Wire1
+
+
+#define Wire Wire1
 #include <Wire.h>
 #include <EEPROM.h>
 
@@ -386,50 +388,37 @@ void loop() {
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     for (int i = 11;  i > -1; i = i - 1) { // loop 12 times, i increments from 11 to 0, so this one for loop checks all keys.
       // TODO: poss add touchplate struct to warp around specific modes
-
-      if (currButtonMode == omnichord) {
-        currentkey[i] = touchRead(key[i]); 
-        if (currentkey[i] > thresh[i] && playflag[i] == 0) {
-          playflag[i] = 1;
-          if (playflag[i] == 1) { 
-            cckey = key[i];
-            ccmin = thresh[i];
-            ccmax = maximum[i];
-          }
-          delay(1);
-          velocity[i] = touchRead(key[i]); 
-          velocity[i] = map(velocity[i], thresh[i], maximum[i], 0, 127); 
-          velocity[i] = constrain(velocity[i], 0, 127); 
-          usbMIDI.sendNoteOn(omniChordScales[omniChordButton][i] + transpose + octave, velocity[i], channel); 
-        }
-
-        if(currentkey[i] < thresh[i] && playflag[i] == 1) {
-          playflag[i] = 0;
-          usbMIDI.sendNoteOff(omniChordScales[omniChordButton][i] + transpose + octave, 0, channel); 
-        }
-
+      
+      // handle poly pressure
+      int lastVal = currentkey[i];
+      int note = scale[i] + transpose + octave;
+      currentkey[i] = touchRead(key[i]);
+      if (lastVal != currentkey[i] && velocity[i] > 0) {
+        int val = constrain(map(currentkey[i], thresh[i], maximum[i], 0, 127), 0, 127);
+        usbMIDI.sendAfterTouchPoly(note, val, channel);
       }
 
-      if (currButtonMode == standard) {
-        currentkey[i] = touchRead(key[i]); 
-        if (currentkey[i] > thresh[i] && playflag[i] == 0) {
-          playflag[i] = 1;
-          if (playflag[i] == 1) { 
-            cckey = key[i];
-            ccmin = thresh[i];
-            ccmax = maximum[i];
-          }
-          delay(1);
-          velocity[i] = touchRead(key[i]); 
-          velocity[i] = map(velocity[i], thresh[i], maximum[i], 0, 127); 
-          velocity[i] = constrain(velocity[i], 0, 127); 
-          usbMIDI.sendNoteOn(scale[i] + transpose + octave, velocity[i], channel); 
-        }
+      int noteNumber = (currButtonMode == omnichord) ?
+        omniChordScales[omniChordButton][i] + transpose + octave :
+        scale[i] + transpose + octave;
 
-        if(currentkey[i] < thresh[i] && playflag[i] == 1) {
-          playflag[i] = 0;
-          usbMIDI.sendNoteOff(scale[i] + transpose + octave, 0, channel); 
+      if (currentkey[i] > thresh[i] && playflag[i] == 0) {
+        playflag[i] = 1;
+        if (playflag[i] == 1) { 
+          cckey = key[i];
+          ccmin = thresh[i];
+          ccmax = maximum[i];
         }
+        delay(1);
+        velocity[i] = touchRead(key[i]); 
+        velocity[i] = map(velocity[i], thresh[i], maximum[i], 0, 127); 
+        velocity[i] = constrain(velocity[i], 0, 127); 
+        usbMIDI.sendNoteOn(noteNumber, velocity[i], channel); 
+      }
+
+      if(currentkey[i] < thresh[i] && playflag[i] == 1) {
+        playflag[i] = 0;
+        usbMIDI.sendNoteOff(noteNumber, 0, channel); 
       }
     }
 
