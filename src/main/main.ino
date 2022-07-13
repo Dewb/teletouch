@@ -3,6 +3,7 @@
 #define Wire Wire1
 #include <Wire.h>
 #include <EEPROM.h>
+#include <limits.h>
 
 int channel = 1; // change this number to use a different midi channel
 int addr = 41; // change this number to use a different i2c address
@@ -79,7 +80,7 @@ int lastTransposeValue;
 
 
 int thresh[12];
-int maximum[12] = {2400, 2600, 2500, 2700, 2600, 2600, 2600, 2900, 2600, 2900, 2700, 2600};
+int maximum[12];
 
 
 // setup flags for held notes
@@ -101,6 +102,9 @@ int currentkey[12];
 int lastcalib[12];
 int basecalib[12];
 int lowestcalib[12];
+
+int minima[12];
+int maxima[12];
 
 // variables for logging which key is used for cc, and its thresholds
 
@@ -147,6 +151,14 @@ enum buttonMode {
 
 buttonMode currButtonMode = standard;
 
+void initialize_thresholds() {
+  for (int i = 0; i < 12; i++) {
+    int wiggleroom = (maxima[i] - minima[i])/20;
+    thresh[i] = minima[i] + 3*wiggleroom;
+    maximum[i] = maxima[i] - wiggleroom;
+  }
+}
+
 void setup() {
   pinMode(LED, OUTPUT);
   pinMode(keyGate1, OUTPUT); //key gate low OUT
@@ -166,9 +178,14 @@ void setup() {
   delay(1000);     
   digitalWrite(LED, LOW);
   for (int i = 0;  i < 12; i++) {
-    thresh[i] = EEPROM.read(i) * 11; //assign saved key calibration to threshold array
+    int pos = i * sizeof(int) * 2;
+    EEPROM.get(pos, minima[i]);
+    EEPROM.get(pos + sizeof(int), maxima[i]);
   }
+  initialize_thresholds();
 }
+
+
 
 void loop() {
   ////////////////// counter for shift functions /////////////////////
@@ -284,7 +301,8 @@ void loop() {
 
   if (shiftcount > 700) { // if shift has been held for more than 7 seconds without any other buttons pressed
     for (int i = 0;  i < 12; i++) {
-      basecalib[i] = touchRead(key[i]); // set the unpressed key value
+      minima[i] = INT_MAX; // set the unpressed key value
+      maxima[i] = 0;
     }
   
     digitalWrite(LED, HIGH);
@@ -293,22 +311,22 @@ void loop() {
     int brk = 0;
     while (brk == 0) {
       for (int i = 0;  i < 12; i++) {    // loop 12 times
-        int currentcalib[12];
-        currentcalib[i] = touchRead(key[i]);
-        if (currentcalib[i] > basecalib[i] + 200) { // if key value i is over 200 above baseline reading
+        int val = touchRead(key[i]);
+        if (val < minima[i]) {
+          minima[i] = val;
+        }
+        if (val > maxima[i]) {
+          maxima[i] = val;
+        }
+        if (val > minima[i] + 200) { // if key value i is over 200 above baseline reading
           digitalWrite(LED, HIGH); //flash led
-          if (currentcalib[i] < lastcalib[i]) {    // if touchread is less than the previous reading
-            lowestcalib[i] = currentcalib[i]; // set touchread as new lowest value
-          }
           Serial.print("key...");
           Serial.print(i);
           Serial.print("...");
-          Serial.println(currentcalib[i]);
+          Serial.println(val);
           delay(5); // add a 5 ms delay between last reading and new reading
           digitalWrite(LED, LOW);        // turn LED off
-          lastcalib[i] = currentcalib[i]; //set the last key value for next run through to check againgst
         }
-        EEPROM.write(i, lowestcalib[i] / 11);   // write the lowest value from the current key calibration to EEPROM memory.
       }
 
       if (digitalRead(shift) == LOW) {  // increment shiftcount every 10ms as long as shift is held
@@ -323,17 +341,14 @@ void loop() {
         digitalWrite(LED, LOW);
         Serial.println("exit calibration");
         for (int i = 0;  i < 12; i++) {
-          Serial.print("EEPROM Value:");
-          Serial.println(EEPROM.read(i) * 11);
-          Serial.print("actual calibration Value:");
-          Serial.println(lowestcalib[i]);
+          int pos = i * sizeof(int) * 2;
+          EEPROM.put(pos, minima[i]);
+          EEPROM.put(pos + sizeof(int), maxima[i]);
         }
         digitalWrite(LED, HIGH); //flash the led
         delay(500);
         digitalWrite(LED, LOW);
-        for (int i = 0;  i < 12; i++) {
-          thresh[i] = EEPROM.read(i) * 11; //assign new saved key calibration to threshold array
-        }
+        initialize_thresholds();
       }
     }
   }
