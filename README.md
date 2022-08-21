@@ -1,12 +1,12 @@
 # teletouch
 
-firmware for the teletouch i2c/midi controller by [nonverbalpoetry](https://www.instagram.com/non.verbal.poetry/)
+firmware for the Tele-touch i2c/midi controller by [nonverbalpoetry](https://www.instagram.com/non.verbal.poetry/)
 
 details:
 https://llllllll.co/t/introducing-teletouch-an-i2c-touch-plate-keyboard/54148
 
 pcbs/kits/assembled units:
-https://oamodular.org/
+https://oamodular.org/products/teletouch
 
 
 ## build instructions
@@ -16,7 +16,7 @@ https://oamodular.org/
 1. Install [Visual Studio Code](https://marketplace.visualstudio.com/vscode) and the [PlatformIO extension](https://platformio.org/platformio-ide)
 2. Open the root folder in Code
 3. Build with `Terminal > Run Build Task` from the menu bar, or the check icon in the PlatformIO toolbar
-4. Send to Teensy with `Terminal > Run Task: Upload` from the menu bar, `pio run` from the terminal, or the right arrow icon in the PlatformIO toolbar
+4. Send to Teensy with `Terminal > Run Task: Upload` from the menu bar, the right arrow icon in the PlatformIO toolbar, or `pio run` from the command line
 
 *with Arduino + Teensyduino*
 
