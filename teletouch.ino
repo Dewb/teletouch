@@ -477,6 +477,10 @@ void loop() {
       }
 
     }
+
+    // midi input is unused, but some software will block if the queue is never emptied
+    while(usbMIDI.read()) {
+    }
           
     //////////////////////////////////// END OF MIDI SECTION ///////////////////////////////////////////////////
 
