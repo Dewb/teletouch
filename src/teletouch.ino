@@ -405,18 +405,17 @@ void loop() {
     for (int i = 11;  i > -1; i = i - 1) { // loop 12 times, i increments from 11 to 0, so this one for loop checks all keys.
       // TODO: poss add touchplate struct to warp around specific modes
       
+      int note = (currButtonMode == omnichord) ?
+        omniChordScales[omniChordButton][i] + transpose + octave :
+        scale[i] + transpose + octave;
+
       // handle poly pressure
       int lastVal = currentkey[i];
-      int note = scale[i] + transpose + octave;
       currentkey[i] = touchRead(key[i]);
       if (lastVal != currentkey[i] && velocity[i] > 0) {
         int val = constrain(map(currentkey[i], thresh[i], maximum[i], 0, 127), 0, 127);
         usbMIDI.sendAfterTouchPoly(note, val, channel);
       }
-
-      int noteNumber = (currButtonMode == omnichord) ?
-        omniChordScales[omniChordButton][i] + transpose + octave :
-        scale[i] + transpose + octave;
 
       if (currentkey[i] > thresh[i] && playflag[i] == 0) {
         playflag[i] = 1;
@@ -429,12 +428,12 @@ void loop() {
         velocity[i] = touchRead(key[i]); 
         velocity[i] = map(velocity[i], thresh[i], maximum[i], 0, 127); 
         velocity[i] = constrain(velocity[i], 0, 127); 
-        usbMIDI.sendNoteOn(noteNumber, velocity[i], channel); 
+        usbMIDI.sendNoteOn(note, velocity[i], channel); 
       }
 
       if(currentkey[i] < thresh[i] && playflag[i] == 1) {
         playflag[i] = 0;
-        usbMIDI.sendNoteOff(noteNumber, 0, channel); 
+        usbMIDI.sendNoteOff(note, 0, channel); 
       }
     }
 
